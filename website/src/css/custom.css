@@ -1,0 +1,110 @@
+/**
+ * OpenEverest palette from docs/css/design.css + docs/css/everest.css
+ *
+ * Sky (primary):  #08386B #0B4A8C #0E5FB5 #127AE8 #1486FF #439EFF #62AEFF
+ * Night:          #0E1A53 #3E4875
+ * Stone:          #2C323E #F0F1F4
+ * Aqua:           #2CBEA2
+ */
+
+:root {
+  --oe-sky-900: #08386b;
+  --oe-sky-800: #0b4a8c;
+  --oe-sky-700: #0e5fb5;
+  --oe-sky-600: #127ae8;
+  --oe-sky-500: #1486ff;
+  --oe-sky-400: #439eff;
+  --oe-sky-300: #62aeff;
+  --oe-sky-200: #93c7ff;
+  --oe-night-500: #0e1a53;
+  --oe-night-400: #3e4875;
+  --oe-stone-900: #2c323e;
+  --oe-stone-50: #f0f1f4;
+  --oe-aqua-600: #2cbea2;
+
+  --ifm-color-primary: var(--oe-sky-700);
+  --ifm-color-primary-dark: var(--oe-sky-800);
+  --ifm-color-primary-darker: #0a4280;
+  --ifm-color-primary-darkest: var(--oe-sky-900);
+  --ifm-color-primary-light: var(--oe-sky-600);
+  --ifm-color-primary-lighter: var(--oe-sky-500);
+  --ifm-color-primary-lightest: var(--oe-sky-400);
+
+  --ifm-font-family-base: Roboto, system-ui, -apple-system, sans-serif;
+  --ifm-heading-font-family: Poppins, Roboto, system-ui, sans-serif;
+  --ifm-font-family-monospace: "Roboto Mono", ui-monospace, monospace;
+
+  --ifm-code-font-size: 95%;
+  --ifm-navbar-background-color: transparent;
+  --ifm-navbar-link-color: #fff;
+  --ifm-navbar-link-hover-color: var(--oe-sky-200);
+  --ifm-footer-background-color: var(--oe-night-500);
+
+  --docusaurus-highlighted-code-line-bg: rgba(14, 95, 181, 0.08);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: var(--oe-sky-300);
+  --ifm-color-primary-dark: var(--oe-sky-400);
+  --ifm-color-primary-darker: var(--oe-sky-500);
+  --ifm-color-primary-darkest: var(--oe-sky-600);
+  --ifm-color-primary-light: var(--oe-sky-200);
+  --ifm-color-primary-lighter: #b6d9ff;
+  --ifm-color-primary-lightest: #d4e9ff;
+
+  --ifm-background-color: var(--oe-stone-900);
+  --ifm-navbar-link-color: #fff;
+  --ifm-navbar-link-hover-color: var(--oe-sky-200);
+  --ifm-footer-background-color: #0a1238;
+
+  --docusaurus-highlighted-code-line-bg: rgba(98, 174, 255, 0.18);
+}
+
+.navbar {
+  background:
+    linear-gradient(
+      110deg,
+      rgba(0, 0, 0, 0) 33%,
+      rgba(0, 0, 0, 0.2) 95%
+    ),
+    linear-gradient(
+      110deg,
+      rgb(14, 95, 181) 33%,
+      rgb(98, 174, 255) 95%
+    );
+  box-shadow: none;
+}
+
+.navbar__title,
+.navbar__link,
+.navbar__item,
+.navbar-sidebar__brand {
+  color: #fff;
+}
+
+.navbar__link--active {
+  color: #fff;
+  font-weight: 600;
+}
+
+.navbar__toggle {
+  color: #fff;
+}
+
+.hero--primary {
+  background:
+    linear-gradient(
+      110deg,
+      rgba(0, 0, 0, 0) 33%,
+      rgba(0, 0, 0, 0.2) 95%
+    ),
+    linear-gradient(
+      110deg,
+      var(--oe-sky-700) 33%,
+      var(--oe-sky-300) 95%
+    );
+}
+
+.footer {
+  background-color: var(--oe-night-500);
+}

@@ -119,33 +119,33 @@ jobs:
               f.write("\n")
           PY
 
-      - name: Set latest stable version
-        working-directory: website
-        env:
-          DOC_VERSION: ${{ steps.version.outputs.doc_version }}
-        run: |
-          # Docusaurus uses lastVersion as the version served at /docs.
-          node - <<'NODE'
-          const fs = require('fs');
+      # - name: Set latest stable version
+      #   working-directory: website
+      #   env:
+      #     DOC_VERSION: ${{ steps.version.outputs.doc_version }}
+      #   run: |
+      #     # Docusaurus uses lastVersion as the version served at /docs.
+      #     node - <<'NODE'
+      #     const fs = require('fs');
 
-          const configPath = './docusaurus.config.js';
-          let config = fs.readFileSync(configPath, 'utf8');
+      #     const configPath = './docusaurus.config.js';
+      #     let config = fs.readFileSync(configPath, 'utf8');
 
-          const version = process.env.DOC_VERSION;
+      #     const version = process.env.DOC_VERSION;
 
-          if (config.includes('lastVersion:')) {
-            config = config.replace(
-              /lastVersion:\s*['"][^'"]+['"]/,
-              `lastVersion: '${version}'`
-            );
-          } else {
-            console.log(
-              'WARNING: lastVersion is not present in docusaurus.config.js'
-            );
-          }
+      #     if (config.includes('lastVersion:')) {
+      #       config = config.replace(
+      #         /lastVersion:\s*['"][^'"]+['"]/,
+      #         `lastVersion: '${version}'`
+      #       );
+      #     } else {
+      #       console.log(
+      #         'WARNING: lastVersion is not present in docusaurus.config.js'
+      #       );
+      #     }
 
-          fs.writeFileSync(configPath, config);
-          NODE
+      #     fs.writeFileSync(configPath, config);
+      #     NODE
 
       - name: Commit generated version
         shell: bash

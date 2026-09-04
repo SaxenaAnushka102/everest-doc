@@ -39,9 +39,10 @@ const config: Config = {
       'classic',
       {
         docs: {
-          sidebarPath: './sidebars.ts',
-          editUrl:
-            'https://github.com/openeverest/everest-doc/edit/main/website/',
+         sidebarPath: './sidebars.ts',
+         editUrl:
+           'https://github.com/openeverest/everest-doc/edit/main/website/',
+         lastVersion: '1.15',
         },
         blog: false,
         theme: {

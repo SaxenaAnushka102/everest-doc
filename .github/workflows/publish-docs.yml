@@ -156,7 +156,7 @@ jobs:
           git add website/versioned_docs \
                   website/versioned_sidebars \
                   website/versions.json \
-                  website/docusaurus.config.js
+                  website/docusaurus.config.ts
 
           if git diff --cached --quiet; then
             echo "No changes to commit."

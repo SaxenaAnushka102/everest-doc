@@ -1,0 +1,188 @@
+name: Publish Docusaurus Docs
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Docs version to publish (e.g. 1.15.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  version-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install dependencies
+        working-directory: website
+        run: npm ci
+
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+
+          # Docs are versioned by minor release.
+          # 1.15.3 -> 1.15
+          DOC_VERSION="$(echo "$VERSION" | cut -d. -f1,2)"
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "doc_version=$DOC_VERSION" >> "$GITHUB_OUTPUT"
+
+          echo "Release version: $VERSION"
+          echo "Docs version: $DOC_VERSION"
+
+      - name: Create Docusaurus version
+        working-directory: website
+        env:
+          DOC_VERSION: ${{ steps.version.outputs.doc_version }}
+        run: |
+          if grep -qx "\"$DOC_VERSION\"" versions.json 2>/dev/null; then
+            echo "Docusaurus version $DOC_VERSION already exists."
+            exit 1
+          fi
+
+          npm run docusaurus docs:version "$DOC_VERSION"
+
+      - name: Keep latest 4 stable minor versions
+        working-directory: website
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+          import re
+          import shutil
+
+          with open("versions.json") as f:
+              versions = json.load(f)
+
+          stable = [
+              v for v in versions
+              if re.fullmatch(r"\d+\.\d+", v)
+          ]
+
+          def version_key(v):
+              major, minor = map(int, v.split("."))
+              return major, minor
+
+          stable.sort(key=version_key, reverse=True)
+
+          keep = stable[:4]
+          remove = stable[4:]
+
+          print("Keeping:", keep)
+          print("Removing:", remove)
+
+          for version in remove:
+              shutil.rmtree(
+                  f"versioned_docs/version-{version}",
+                  ignore_errors=True
+              )
+
+              sidebar = f"versioned_sidebars/version-{version}-sidebars.json"
+              if os.path.exists(sidebar):
+                  os.remove(sidebar)
+
+          versions[:] = [
+              v for v in versions
+              if v not in remove
+          ]
+
+          with open("versions.json", "w") as f:
+              json.dump(versions, f, indent=2)
+              f.write("\n")
+          PY
+
+      - name: Set latest stable version
+        working-directory: website
+        env:
+          DOC_VERSION: ${{ steps.version.outputs.doc_version }}
+        run: |
+          # Docusaurus uses lastVersion as the version served at /docs.
+          node - <<'NODE'
+          const fs = require('fs');
+
+          const configPath = './docusaurus.config.js';
+          let config = fs.readFileSync(configPath, 'utf8');
+
+          const version = process.env.DOC_VERSION;
+
+          if (config.includes('lastVersion:')) {
+            config = config.replace(
+              /lastVersion:\s*['"][^'"]+['"]/,
+              `lastVersion: '${version}'`
+            );
+          } else {
+            console.log(
+              'WARNING: lastVersion is not present in docusaurus.config.js'
+            );
+          }
+
+          fs.writeFileSync(configPath, config);
+          NODE
+
+      - name: Commit generated version
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add website/versioned_docs \
+                  website/versioned_sidebars \
+                  website/versions.json \
+                  website/docusaurus.config.js
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "docs: publish version ${{ steps.version.outputs.doc_version }}"
+            git push origin HEAD:main
+          fi
+
+      - name: Build Docusaurus site
+        working-directory: website
+        run: npm run build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/build
+
+  deploy:
+    needs: version-and-build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

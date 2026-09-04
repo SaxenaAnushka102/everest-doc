@@ -42,7 +42,6 @@ const config: Config = {
          sidebarPath: './sidebars.ts',
          editUrl:
            'https://github.com/openeverest/everest-doc/edit/main/website/',
-         lastVersion: '1.15',
         },
         blog: false,
         theme: {

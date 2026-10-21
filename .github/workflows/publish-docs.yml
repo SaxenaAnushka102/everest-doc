@@ -20,10 +20,6 @@ concurrency:
   group: github-pages
   cancel-in-progress: false
 
-concurrency:
-  group: github-pages
-  cancel-in-progress: true
-
 jobs:
   build:
     name: Build documentation

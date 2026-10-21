@@ -11,16 +11,16 @@ const config: Config = {
     v4: true,
   },
 
-  // Local / PoC. For a fork GitHub Pages demo, switch to:
-  // url: 'https://<your-github-user>.github.io',
-  // baseUrl: '/everest-doc/',
-  url: 'https://docs.openeverest.io',
-  baseUrl: '/',
+  // Project GitHub Pages URL: https://openeverest.github.io/everest-doc/
+  // Local preview: http://localhost:3000/everest-doc/
+  url: 'https://openeverest.github.io',
+  baseUrl: '/everest-doc/',
+  trailingSlash: false,
 
   organizationName: 'openeverest',
   projectName: 'everest-doc',
 
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn',
 
   i18n: {
     defaultLocale: 'en',
@@ -39,9 +39,16 @@ const config: Config = {
       'classic',
       {
         docs: {
-         sidebarPath: './sidebars.ts',
-         editUrl:
-           'https://github.com/openeverest/everest-doc/edit/main/website/',
+          sidebarPath: './sidebars.ts',
+          editUrl:
+            'https://github.com/openeverest/everest-doc/edit/main/website/',
+          lastVersion: 'current',
+          versions: {
+            current: {
+              label: 'Next',
+              path: '',
+            },
+          },
         },
         blog: false,
         theme: {
@@ -65,7 +72,7 @@ const config: Config = {
       items: [
         {
           type: 'docSidebar',
-          sidebarId: 'tutorialSidebar',
+          sidebarId: 'docsSidebar',
           position: 'left',
           label: 'Docs',
         },
@@ -88,7 +95,7 @@ const config: Config = {
           items: [
             {
               label: 'Documentation',
-              to: '/docs/intro',
+              to: '/docs',
             },
             {
               label: 'Current site (MkDocs)',

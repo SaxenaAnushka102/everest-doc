@@ -1,41 +1,25 @@
+---
+sidebar_position: 1
+title: Welcome
+---
+
 # Welcome to OpenEverest
 
-We are excited to welcome you to OpenEverest, designed to demonstrate the core capabilities of our new open source cloud-native database platform!
-
-## Why OpenEverest?
-
-OpenEverest is the first open-source platform for automated database provisioning and management. It supports multiple database technologies and can be hosted on any Kubernetes infrastructure, in the cloud or on-premises.
+OpenEverest is an open-source platform for automated database provisioning and management. It supports multiple database technologies and can run on any Kubernetes infrastructure, in the cloud or on-premises.
 
 ![OpenEverest documentation overview](/images/open-everest-docs.png)
 
-## Ready to test drive OpenEverest?
+This Docusaurus site is a **proof of concept** for [everest-doc#378](https://github.com/openeverest/everest-doc/issues/378). It is a small, versioned slice of the existing MkDocs documentation — not a full migration.
 
-Let's start by enabling you to deploy an automated private DBaaS, eliminating vendor lock-in and complex in-house platform development.
+:::tip Version picker
+Use the dropdown in the navbar to switch **Next** (this branch), **1.16**, and **1.15**.
+:::
 
-[OpenEverest quickstart guide →](quick-install.md)  [Manage your first cluster →](use/db_provision.md)
+## Start here
 
-Refer to our documentation, and you'll be set up in no time.
+- [Quick install](quick-install.md) — install OpenEverest with Helm
+- [Features](features.md) — what the platform provides
+- [Contribute](contribute.md) — how to send docs or code changes
+- [Get help](get-help.md) — Slack, meetings, and support
 
-### Discover
-
-Discover how OpenEverest simplifies and streamlines your database management and provisioning.
-
-[Discover OpenEverest →](features.md)
-
-### Secure
-
-Explore how our security features are designed to ensure the security of your hosted databases.
-
-[Secure your deployments →](security/sso_idp_integration.md)
-
-### Troubleshooting
-
-Dive into our troubleshooting section designed to guide you through common issues you may encounter while using OpenEverest.
-
-[Troubleshoot →](troubleshoot/troubleshoot.md)
-
-### OpenEverest API
-
-Get ready to dive into our APIs and uncover their potential.
-
-[Dive into our APIs →](https://openeverest.io/docs/api/)
+The live MkDocs site remains at [docs.openeverest.io](https://docs.openeverest.io/).

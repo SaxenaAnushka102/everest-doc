@@ -1,0 +1,238 @@
+
+name: Prepare Versioned Docs
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  prepare-release:
+    name: Generate snapshot and create PR
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout main and fetch tags
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install dependencies
+        working-directory: website
+        run: npm ci
+
+      - name: Validate stable release tag
+        id: release
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+
+          if [[ ! "$TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "stable=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping non-stable tag: $TAG"
+            exit 0
+          fi
+
+          VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+
+          echo "stable=true" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          echo "Release tag: $TAG"
+          echo "Docs snapshot: $VERSION"
+
+      - name: Validate tagged documentation
+        if: steps.release.outputs.stable == 'true'
+        env:
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "${TAG}:website/docs"
+          git cat-file -e "${TAG}:website/sidebars.ts"
+
+      - name: Check for an existing snapshot
+        id: snapshot
+        if: steps.release.outputs.stable == 'true'
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          node <<'NODE' >> "$GITHUB_OUTPUT"
+          const fs = require("fs");
+          const versions = JSON.parse(
+            fs.readFileSync("website/versions.json", "utf8")
+          );
+          console.log(`exists=${versions.includes(process.env.VERSION)}`);
+          NODE
+
+      - name: Generate snapshot from tagged source
+        if: >-
+          steps.release.outputs.stable == 'true' &&
+          steps.snapshot.outputs.exists == 'false'
+        env:
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.release.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TMP="$(mktemp -d)"
+          mkdir -p "$TMP/release"
+
+          # Extract the docs and sidebar as they existed at the release tag.
+          git archive "$TAG" website/docs website/sidebars.ts \
+            | tar -x -C "$TMP/release"
+
+          # Preserve the current main-branch source.
+          cp -a website/docs "$TMP/main-docs"
+          cp website/sidebars.ts "$TMP/main-sidebars.ts"
+
+          restore_main_docs() {
+            rm -rf website/docs
+            cp -a "$TMP/main-docs" website/docs
+            cp "$TMP/main-sidebars.ts" website/sidebars.ts
+          }
+
+          # Use tagged docs only while generating the snapshot.
+          trap restore_main_docs EXIT
+
+          rm -rf website/docs
+          cp -a "$TMP/release/website/docs" website/docs
+          cp "$TMP/release/website/sidebars.ts" website/sidebars.ts
+
+          (
+            cd website
+            npx docusaurus docs:version "$VERSION"
+          )
+
+          # Restore the current unversioned documentation.
+          restore_main_docs
+          trap - EXIT
+
+      - name: Apply stable-version retention policy
+        if: steps.release.outputs.stable == 'true'
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const registry = "website/versions.json";
+          const versions = JSON.parse(fs.readFileSync(registry, "utf8"));
+
+          const isStable = v => /^\d+\.\d+\.\d+$/.test(v);
+
+          const compareVersions = (a, b) => {
+            const x = a.split(".").map(Number);
+            const y = b.split(".").map(Number);
+            return (y[0] - x[0]) || (y[1] - x[1]) || (y[2] - x[2]);
+          };
+
+          const minorLine = v => v.split(".").slice(0, 2).join(".");
+
+          const compareMinorLines = (a, b) => {
+            const x = a.split(".").map(Number);
+            const y = b.split(".").map(Number);
+            return (y[0] - x[0]) || (y[1] - x[1]);
+          };
+
+          const stable = [...new Set(versions.filter(isStable))]
+            .sort(compareVersions);
+
+          const lines = [...new Set(stable.map(minorLine))]
+            .sort(compareMinorLines);
+
+          // Current minor line plus previous four minor lines.
+          const retainedLines = new Set(lines.slice(0, 5));
+          const keep = new Set();
+
+          for (const line of retainedLines) {
+            stable
+              .filter(v => minorLine(v) === line)
+              .slice(0, 2)
+              .forEach(v => keep.add(v));
+          }
+
+          for (const version of stable) {
+            if (keep.has(version)) continue;
+
+            fs.rmSync(`website/versioned_docs/version-${version}`, {
+              recursive: true,
+              force: true
+            });
+
+            fs.rmSync(
+              `website/versioned_sidebars/version-${version}-sidebars.json`,
+              { force: true }
+            );
+          }
+
+          const latest = stable.find(v => keep.has(v));
+
+          if (!latest) {
+            throw new Error("No stable documentation versions remain.");
+          }
+
+          // Preserve prerelease entries without counting them as stable.
+          const previews = versions.filter(v => !isStable(v));
+          const olderStable = stable.filter(
+            v => keep.has(v) && v !== latest
+          );
+
+          const updated = [latest, ...previews, ...olderStable];
+
+          fs.writeFileSync(
+            registry,
+            `${JSON.stringify(updated, null, 2)}\n`
+          );
+
+          console.log("Latest stable:", latest);
+          console.log("Retained stable versions:", updated.filter(isStable));
+          console.log("Preserved previews:", previews);
+          NODE
+
+      - name: Create or update release PR
+        if: steps.release.outputs.stable == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: main
+          branch: automation/docs-${{ steps.release.outputs.version }}
+          delete-branch: true
+          commit-message: "docs: add version ${{ steps.release.outputs.version }}"
+          title: "docs: add version ${{ steps.release.outputs.version }}"
+          body: |
+            ## Documentation release
+
+            Generated from tag `${{ github.ref_name }}`.
+
+            This PR:
+            - Adds the tagged documentation snapshot.
+            - Applies the stable-version retention policy.
+            - Preserves the current unversioned docs.
+            - Does not deploy the site directly.
+
+            Review the generated files before merging.
+            Merging triggers the publishing workflow.
+          add-paths: |
+            website/versions.json
+            website/versioned_docs/**
+            website/versioned_sidebars/**
